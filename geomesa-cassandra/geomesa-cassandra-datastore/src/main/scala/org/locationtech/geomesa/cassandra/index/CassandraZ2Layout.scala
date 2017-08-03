@@ -17,7 +17,7 @@ import org.opengis.feature.simple.SimpleFeatureType
 
 trait CassandraZ2Layout extends CassandraFeatureIndex {
 
-  private val Shard     = NamedColumn("shard", 0, "tinyint",  classOf[Byte],   partition = true)
+  private val Shard     = NamedColumn("shard", 0, "int",      classOf[Int],   partition = true)
   private val ZValue    = NamedColumn("z",     1, "bigint",   classOf[Long])
   private val FeatureId = NamedColumn("fid",   2, "text",     classOf[String])
 
@@ -31,12 +31,12 @@ trait CassandraZ2Layout extends CassandraFeatureIndex {
   override protected def rowToColumns(sft: SimpleFeatureType, row: Array[Byte]): Seq[RowValue] = {
     import CassandraFeatureIndex.RichByteArray
 
-    var shard: java.lang.Byte = null
+    var shard: java.lang.Integer = null
     var z: java.lang.Long = null
     var fid: String = null
 
     if (row.length > 0) {
-      shard = row(0)
+      shard = row(0).toInt
       if (row.length > 1) {
         z = Longs.fromBytes(row(1), row.getOrElse(2, 0), row.getOrElse(3, 0), row.getOrElse(4, 0), row.getOrElse(5, 0),
           row.getOrElse(6, 0), row.getOrElse(7, 0), row.getOrElse(8, 0))
@@ -50,13 +50,13 @@ trait CassandraZ2Layout extends CassandraFeatureIndex {
   }
 
   override protected def columnsToRow(columns: Seq[RowValue]): Array[Byte] = {
-    val shard = columns.head.value.asInstanceOf[Byte]
+    val shard = columns.head.value.asInstanceOf[Int]
     val z = Longs.toByteArray(columns(1).value.asInstanceOf[Long])
     val fid = columns(2).value.asInstanceOf[String].getBytes(StandardCharsets.UTF_8)
 
     val row = Array.ofDim[Byte](9 + fid.length)
 
-    row(0) = shard
+    row(0) = shard.toByte
     System.arraycopy(z, 0, row, 1, 8)
     System.arraycopy(fid, 0, row, 9, fid.length)
 

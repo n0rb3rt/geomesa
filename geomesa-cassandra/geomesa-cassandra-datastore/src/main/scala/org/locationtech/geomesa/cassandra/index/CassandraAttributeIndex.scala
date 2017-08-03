@@ -12,6 +12,7 @@ package org.locationtech.geomesa.cassandra.index
 import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
 
+import com.google.common.primitives.Shorts
 import org.locationtech.geomesa.cassandra.data._
 import org.locationtech.geomesa.cassandra.{NamedColumn, RowRange, RowValue}
 import org.locationtech.geomesa.index.index.AttributeIndex
@@ -26,7 +27,7 @@ case object CassandraAttributeIndex
 
   override protected def getShards(sft: SimpleFeatureType): IndexedSeq[Array[Byte]] = SplitArrays.EmptySplits
 
-  private val Index     = NamedColumn("attrIdx",   0, "smallint", classOf[Short],  partition = true)
+  private val Index     = NamedColumn("attrIdx",   0, "int",      classOf[Int],  partition = true)
   private val Value     = NamedColumn("attrVal",   1, "text",     classOf[String])
   private val Secondary = NamedColumn("secondary", 2, "blob",     classOf[ByteBuffer])
   private val FeatureId = NamedColumn("fid",       3, "text",     classOf[String])
@@ -42,7 +43,7 @@ case object CassandraAttributeIndex
 
   override protected def rowToColumns(sft: SimpleFeatureType, row: Array[Byte]): Seq[RowValue] = {
 
-    val index = Short.box(AttributeIndex.bytesToIndex(row(0), row(1)))
+    val index = Int.box(AttributeIndex.bytesToIndex(row(0), row(1)).toInt)
     var offset = 2
     var lexicoded: String = null
     var secondaryIndex: ByteBuffer = null
@@ -70,7 +71,7 @@ case object CassandraAttributeIndex
   }
 
   override protected def columnsToRow(columns: Seq[RowValue]): Array[Byte] = {
-    val attributeIndex = AttributeIndex.indexToBytes(columns.head.value.asInstanceOf[Short])
+    val attributeIndex = Shorts.toByteArray(columns.head.value.asInstanceOf[Int].toShort)
     val lexicodedValue = columns(1).value.asInstanceOf[String].getBytes(StandardCharsets.UTF_8)
     val secondaryIndex = columns(2).value.asInstanceOf[ByteBuffer]
     val fid = columns(3).value.asInstanceOf[String].getBytes(StandardCharsets.UTF_8)

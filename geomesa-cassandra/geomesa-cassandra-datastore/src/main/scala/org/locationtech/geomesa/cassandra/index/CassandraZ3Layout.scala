@@ -17,8 +17,8 @@ import org.opengis.feature.simple.SimpleFeatureType
 
 trait CassandraZ3Layout extends CassandraFeatureIndex {
 
-  private val Shard     = NamedColumn("shard",  0, "tinyint",  classOf[Byte],   partition = true)
-  private val Period    = NamedColumn("period", 1, "smallint", classOf[Short],  partition = true)
+  private val Shard     = NamedColumn("shard",  0, "int",      classOf[Int],   partition = true)
+  private val Period    = NamedColumn("period", 1, "int",      classOf[Int],   partition = true)
   private val ZValue    = NamedColumn("z",      2, "bigint",   classOf[Long])
   private val FeatureId = NamedColumn("fid",    3, "text",     classOf[String])
 
@@ -33,14 +33,14 @@ trait CassandraZ3Layout extends CassandraFeatureIndex {
   override protected def rowToColumns(sft: SimpleFeatureType, row: Array[Byte]): Seq[RowValue] = {
     import CassandraFeatureIndex.RichByteArray
 
-    var shard: java.lang.Byte = null
-    var period: java.lang.Short = null
+    var shard: java.lang.Integer = null
+    var period: java.lang.Integer = null
     var z: java.lang.Long = null
     var fid: String = null
     if (row.length > 0) {
-      shard = row(0)
+      shard = row(0).toInt
       if (row.length > 1) {
-        period = Shorts.fromBytes(row(1), row(2))
+        period = Shorts.fromBytes(row(1), row(2)).toInt
         if (row.length > 3) {
           z = Longs.fromBytes(row(3), row.getOrElse(4, 0), row.getOrElse(5, 0), row.getOrElse(6, 0),
             row.getOrElse(7, 0), row.getOrElse(8, 0), row.getOrElse(9, 0), row.getOrElse(10, 0))
@@ -55,8 +55,8 @@ trait CassandraZ3Layout extends CassandraFeatureIndex {
   }
 
   override protected def columnsToRow(columns: Seq[RowValue]): Array[Byte] = {
-    val shard = columns.head.value.asInstanceOf[Byte]
-    val period = Shorts.toByteArray(columns(1).value.asInstanceOf[Short])
+    val shard = columns.head.value.asInstanceOf[Int].toByte
+    val period = Shorts.toByteArray(columns(1).value.asInstanceOf[Int].toShort)
     val z = Longs.toByteArray(columns(2).value.asInstanceOf[Long])
     val fid = columns(3).value.asInstanceOf[String].getBytes(StandardCharsets.UTF_8)
 
